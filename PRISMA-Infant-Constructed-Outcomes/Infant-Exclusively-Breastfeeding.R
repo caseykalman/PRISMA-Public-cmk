@@ -47,8 +47,6 @@ path_to_tnt <- paste0("Z:/Constructed Data/", UploadDate)
 # path_to_save <- paste0("~/data/raw/", UploadDate, "/")
 path_to_queries <- paste0("queries/", UploadDate)
 
-# Expand the path (in case of ~)
-path_to_save <- path.expand(path_to_save)
 # Create the directory if it doesn't exist
 if (!file.exists(path_to_queries)) {
   dir.create(path_to_queries, recursive = TRUE)
