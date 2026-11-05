@@ -126,9 +126,9 @@ check_lme_fit <- function(fit, df, kn, ga_impute = 9, imputed = NULL, plot = NUL
   out <- do.call(rbind, flags)
   n_flag <- sum(out$status == "FLAG")
   
-  # still print to the console
-  print(out, row.names = FALSE, right = FALSE)
-  cat("\n", n_flag, "flag(s) out of", nrow(out), "checks\n")
+  # Print to the console
+  # print(out, row.names = FALSE, right = FALSE)
+  # cat("\n", n_flag, "flag(s) out of", nrow(out), "checks\n")
   
   # draw the table in the Plots window
   if (plot) {
@@ -149,22 +149,23 @@ check_lme_fit <- function(fit, df, kn, ga_impute = 9, imputed = NULL, plot = NUL
     )
     
     tbl   <- tableGrob(show, rows = NULL, theme = tt)
-    title <- textGrob(paste0("Model checks: ", n_flag, " flag(s) out of ", nrow(out)),
+    title <- textGrob(paste0(unique(df$SITE),"\nModel checks: ", n_flag, " flag(s) out of ", nrow(out)),
                       gp = gpar(fontsize = 13, fontface = "bold"))
     
     grid.newpage()
-    grid.draw(arrangeGrob(title, tbl,
-                          heights = unit.c(unit(1.5, "lines"), unit(1, "npc") - unit(1.5, "lines"))))
+    grid.draw(arrangeGrob(title, tbl, heights = c(0.03, 0.97)))
   }
   
   invisible(out)
 }
 
-zambia<-imputed_bmi%>%filter(SITE=="Zambia")
+# zambia<-imputed_bmi%>%
+#           filter(SITE=="Zambia")%>%
+#           rename(mweight = WEIGHT_PERES)
 
 weight_imputation<-function(data){
 
-  #data <- zambia
+ #data <- zambia
   
   # 1. Percentiles of ga_week < 28 
   df <- data %>% filter(GA_WKS < 28)
@@ -216,6 +217,23 @@ weight_imputation<-function(data){
     
   }
   
+  if(is.null(fit)){
+    message(paste("Trying simpler random-effects structure: ~1 for", unique(df$SITE)))
+    
+    fit <- tryCatch(
+      lme(
+        fixed = mweight ~ spl1 + spl2,
+        random = ~ 1  | PREGID,
+        data = df,
+        method = "REML",
+        na.action = na.omit,
+        control = lmeControl(opt = "optim", maxIter = 200, msMaxIter = 200)
+      ),
+      error = function(e) NULL
+    )
+    
+  }
+  
   # If everything failed
   if (is.null(fit)) {
     message("All model specifications failed for site: ", unique(df$SITE))
@@ -242,16 +260,16 @@ weight_imputation<-function(data){
   check_lme_fit(fit, df, kn, ga_impute = 9, imputed = NULL, plot=TRUE)
   
   #print knots
-  print(paste0("Knots: ", kn))
+  #print(paste0("Knots: ", kn))
   
   #print model details
-  print(summary(fit))
+  #print(summary(fit))
   
   #final df
-  print(head(imputation))
+  #print(head(imputation))
   
   #return final dataframe to global environment
-  imputation
+  return(imputation)
   
 }
 
@@ -350,9 +368,9 @@ load(paste0("data_in/input_dataframes_imputedbmi_",UploadDate,".rda"))
 # 
 # crfs_needed<-c("mnh05", "mnh23")
 # 
-# #NOTE: Don't need to read the files in over and over again now that I've created an RDA file.
-# #Loop through each CSV file
-# #Casey's Notes: Changed this so it only reads in the files we need
+# # #NOTE: Don't need to read the files in over and over again now that I've created an RDA file.
+# # #Loop through each CSV file
+# # #Casey's Notes: Changed this so it only reads in the files we need
 # for (file in csv_files) {
 #   # Extract the base name of the file (without the path)
 #   base_name <- basename(file)
@@ -360,14 +378,14 @@ load(paste0("data_in/input_dataframes_imputedbmi_",UploadDate,".rda"))
 #   # Extract the part of the name before the underscore
 #   name_prefix <- str_split(base_name, "_")[[1]][1]
 #   name_prefix
-#   
+# 
 #   name_abbrev <- gsub("nh","",name_prefix)%>%toupper()
 #   name_abbrev
-#   
+# 
 #   # Read the CSV file into a data frame
 #   if(name_prefix %in% c(crfs_needed)){
 # 
-#     data_frame <- read.csv(file) %>% 
+#     data_frame <- read.csv(file) %>%
 #                   rename_with(toupper)%>%
 #                   rename_variables(.,name_abbrev)
 # 
@@ -380,30 +398,30 @@ load(paste0("data_in/input_dataframes_imputedbmi_",UploadDate,".rda"))
 # Optional: List all variables in the environment to verify
 # ls()
 # 
- # save(
- #  list = crfs_needed,
- #  file = (paste0("D:/Users/ckalman/Documents/OutcomeDatasets/Analysis/Maternal Weight Gain/data_in/mnh_dataframes_imputedbmi_",UploadDate,".rda")))
+# save(
+#  list = crfs_needed,
+#  file = (paste0("D:/Users/ckalman/Documents/OutcomeDatasets/Analysis/Maternal Weight Gain/data_in/mnh_dataframes_imputedbmi_",UploadDate,".rda")))
 
 ### Pull in constructed datasets----
 #*******************************************
-# 
+
 # if(UploadDate<'2026-09-18'){
-#   
+# 
 #   mat_enroll <- read_dta(paste0("Z:/Outcome Data/",UploadDate,"/MAT_ENROLL.dta"))%>%rename_with(toupper)
 #   mat_endpoints <- read_dta(paste0("Z:/Outcome Data/",UploadDate,"/MAT_ENDPOINTS.dta"))%>%rename_with(toupper)
 #   mat_demographic <- read_dta(paste0("Z:/Outcome Data/",UploadDate,"/MAT_DEMOGRAPHIC.dta"))%>%rename_with(toupper)
 #   mat_flowchart <- read_dta(paste0("Z:/Outcome Data/",UploadDate,"/MAT_FLOWCHART.dta"))%>%rename_with(toupper)
-#   
+# 
 # } else {
-#   
+# 
 #   mat_studystatus<-read_dta(paste0("Z:/Constructed Data/",UploadDate,"/MAT_STUDYSTATUS.dta"))%>%rename_with(toupper)
 #   mat_demographic <- read_dta(paste0("Z:/Constructed Data/",UploadDate,"/MAT_BASELINE.dta"))%>%rename_with(toupper)
 #   mat_flowchart <- read.csv(paste0("Z:/Constructed Data/",UploadDate,"/MAT_FLOWCHART.csv"))%>%rename_with(toupper)
-#   
-#   
+# 
+# 
 #   anc <- c("ENROLL", "ANC20", "ANC28", "ANC32", "ANC36")
 #   pnc <- paste0("PNC", c(0, 1, 4, 6, 26, 52))
-#   
+# 
 #   mat_enroll_vars <- c(
 #     "SITE", "SCRNID", "MOMID", "PREGID", "ENROLL", "REMAPP_ENROLL",
 #     "REMAPP_AIM3_ENROLL", "REMAPP_AIM3_TRI", "ENROLL_SCRN_DATE", "PREG_START_DATE",
@@ -412,7 +430,7 @@ load(paste0("data_in/input_dataframes_imputedbmi_",UploadDate,".rda"))
 #     "US_GA_DAYS_ENROLL", "US_GA_WKS_ENROLL", "LMP_GA_DAYS_ENROLL", "LMP_GA_WKS_ENROLL",
 #     outer(anc, c("_ONTIME_WINDOW", "_LATE_WINDOW", "_PASS_ONTIME", "_PASS_LATE"), paste0)
 #   )
-#   
+# 
 #   mat_endpoints_vars <- c(
 #     "SITE", "MOMID", "PREGID", "PREG_END", "PREG_END_GA", "PREG_END_DATE",
 #     "PREG_LOSS", "PREG_LOSS_INDUCED", "PREG_LOSS_DEATH",
@@ -421,11 +439,11 @@ load(paste0("data_in/input_dataframes_imputedbmi_",UploadDate,".rda"))
 #     "MAT_DEATH_MISSDATE", "MAT_DEATH_INFAGE","PREG_END_PP42_DT", "MAT_DEATH_42", "STOP_DATE",
 #     outer(pnc, c("_ONTIME_WINDOW", "_LATE_WINDOW", "_PASS_ONTIME", "_PASS_LATE"), paste0)
 #   )
-#   
+# 
 #   mat_enroll <- select(mat_studystatus, any_of(mat_enroll_vars))
 #   mat_endpoints <- select(mat_studystatus, any_of(mat_endpoints_vars))
 # }
-
+# 
 # save(
 #   mnh05,
 #   mnh23,
